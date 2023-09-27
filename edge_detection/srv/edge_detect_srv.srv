@@ -1,0 +1,6 @@
+# Edge detection service request
+sensor_msgs/Image input_image_msg  # Input image message
+---
+# Edge detection service response
+sensor_msgs/Image output_image_msg  # Detected edges as an output image message
+

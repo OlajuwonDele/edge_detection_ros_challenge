@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>edge_detection</name>
+  <version>0.0.0</version>
+  <description>The edge_detection package</description>
+
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
+  <maintainer email="olajuwondele@gmail.com">Olajuwon Dele</maintainer>
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Update the license tag to match the appropriate license for your package -->
+  <license>Neura AI Test</license>
+
+  <!-- Author tags are optional, multiple are allowed, one per tag -->
+  <author email="olajuwondele@gmail.com">Olajuwon Dele</author>
+
+  <!-- Dependencies -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>message_runtime</depend>
+
+  <!-- Add the opencv2 package as a dependency for OpenCV -->
+  <depend>opencv2</depend>
+
+  <!-- Add sensor_msgs and image_transport as dependencies -->
+  <depend>sensor_msgs</depend>
+  <depend>image_transport</depend>
+
+  <!-- Add pcl_ros as a dependency for PointCloud2 -->
+  <depend>pcl_ros</depend>
+  
+  <depend>tf2_ros</depend>
+  
+    <!-- For RViz visualisation -->
+  <build_depend>visualization_msgs</build_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+  </export>
+</package>
+

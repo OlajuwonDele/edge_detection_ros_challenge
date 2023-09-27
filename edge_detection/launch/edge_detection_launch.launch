@@ -1,0 +1,18 @@
+<launch>
+  <!-- Load the URDF description of the robot -->
+  <arg name="rvizconfig" default="$(find mira_picker)/rviz/urdf.rviz" />
+  <arg name="gripper_name" default="robotiq2f_85" /> <!-- robotiq2f_85, robotiq2f_140-->
+  <arg name="model" default="$(find mira_picker)/urdf/mira_picker_$(arg gripper_name).urdf.xacro"/>
+
+  <param name="robot_description" command="$(find xacro )/xacro $(arg model)" />
+
+  <!-- Start RViz with the configuration for edge detection -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find edge_detection)/rviz/edge_detection_rviz.rviz" required="true" />
+
+  <!-- Start your edge_detection_publisher node -->
+  <node name="edge_detection_publisher" type="edge_detection_publisher" pkg="edge_detection" output="screen">
+    <!-- Add any specific node parameters here if needed -->
+    <!-- Add any necessary parameters or arguments for your edge detection node here -->
+  </node>
+</launch>
+
