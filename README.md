@@ -7,28 +7,6 @@ Different sample images are provided to test your code with. The ideal solution 
 
 The different filters used should be implemented in a modular and parameterizable form. Popular image processing libraries like OpenCV, which are open source, can be used. It is ideally expected that the candidate solves the problem using the C++ language. Python can be used, but Matlab is not permitted.
 
-## Preliminary Requirements
-1. Install ROS Noetic
-2. Create a catkin workspace
-3. Clone this repository into the src/ directory of your workspace
-4. Ready to work on your code and build. 
-
-    See ROS Tutorials: http://wiki.ros.org/ROS/Tutorials 
-
-5. Download bagfiles from a directory that will be shared to you.
-
-6. To launch the robot description and bag file:
-    ```
-    # Terminal 1
-    roscore
-
-    # Terminal 2
-    rosparam set /use_sim_time true
-    source <path to catkin workspace>/devel/setup.bash
-    roslaunch mira_picker display.launch gripper_name:=robotiq2f_140 publish_joint_state:=false publish_robot_state:=false
-
-    # Terminal 3
-    rosbag play --clock -l <path to bagfile>
     ```
 ## Tasks and results
 ### 1. Basic 
