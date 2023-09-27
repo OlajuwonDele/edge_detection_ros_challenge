@@ -1,7 +1,4 @@
 # Vision Programming Challenge
- 
-## Introduction
-Thank you for agreeing to spend your time solving this programming challenge in the vision domain for us. We will evaluate your solution based on accuracy, code quality, and how clearly you describe your technique.
 
 ## Problem Statement
 This task attempts to gain a better understanding of your knowledge of computer vision as well as your programming capability. Edge detection is a preliminary but important step in computer vision. The goal of this challenge is to detect the edges of a checkboard and highlight them with a green line superimposed on the image.
