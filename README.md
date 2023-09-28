@@ -5,9 +5,7 @@ This task attempts to gain a better understanding of your knowledge of computer 
 
 Different sample images are provided to test your code with. The ideal solution will be modular, object-oriented, and able to deal with different image sizes and different numbers of squares and their respective sizes. It should also be robust to noise and rotation.
 
-The different filters used should be implemented in a modular and parameterizable form. Popular image processing libraries like OpenCV, which are open source, can be used. It is ideally expected that the candidate solves the problem using the C++ language. Python can be used, but Matlab is not permitted.
-
-    ```
+The different filters used should be implemented in a modular and parameterizable form. Popular image processing libraries like OpenCV, which are open source, can be used. It is ideally expected that the candidate solves the problem using the C++ language. 
 ## Tasks and results
 ### 1. Basic 
 For C++, the EdgeDetector.hpp and EdgeDetector.cpp files should be filled in. If any libraries are required, add them to the CMakeLists.txt. For Python, the edge_detector.py file should be filled in. Instructions must also be provided to download and install any required Python packages.
