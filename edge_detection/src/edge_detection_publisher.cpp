@@ -19,12 +19,21 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_msgs/TFMessage.h>
+#include <tf2_ros/buffer.h> 
+#include <tf2_ros/transform_listener.h>
+
+
 
 
 class EdgeDetectionNode {
 public:
     EdgeDetectionNode(ros::NodeHandle& nh)
     : nh_(nh), it_(nh) {
+    // tf_buffer_ = new tf2_ros::Buffer();
+        
+    //     // Create a TF2 listener and populate the buffer
+    // tf_listener_ = new tf2_ros::TransformListener(*tf_buffer_);
     image_sub_ = it_.subscribe("/camera/color/image_raw", 1, &EdgeDetectionNode::imageCallback, this);
     depth_points_sub_ = nh_.subscribe("/camera/depth_registered/points", 1, &EdgeDetectionNode::depthPointsCallback, this);
     camera_info_sub_ = nh_.subscribe("/camera/depth/camera_info", 1, &EdgeDetectionNode::cameraInfoCallback, this);
@@ -37,6 +46,8 @@ public:
     edge_marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/edge_detection/edge_markers", 1);
 
     robot_pose_sub_ = nh_.subscribe("/tf", 1, &EdgeDetectionNode::robotPoseCallback, this);
+
+    
 
     // cv::namedWindow("Input Image");
     // cv::namedWindow("Edge Detection");
@@ -117,103 +128,124 @@ public:
     }
     }
 
-    void robotPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
-        std::lock_guard<std::mutex> lock(robot_pose_mutex_);
-        robot_pose_ = *msg;
+    void robotPoseCallback(const tf2_msgs::TFMessage::ConstPtr& msg) {
+    for (const geometry_msgs::TransformStamped& transform : msg->transforms) {
+        if (transform.header.frame_id == "link6" && transform.child_frame_id == "link7") {
+            std::lock_guard<std::mutex> lock(robot_pose_mutex_);
+            // Check if the timestamp is different before updating robot_pose_
+            if (transform.header.stamp != robot_pose_.header.stamp) {
+                robot_pose_.header = transform.header;
+                robot_pose_.pose.position.x = transform.transform.translation.x;
+                robot_pose_.pose.position.y = transform.transform.translation.y;
+                robot_pose_.pose.position.z = transform.transform.translation.z;
+                robot_pose_.pose.orientation = transform.transform.rotation;
+            }
+        }
     }
+}
+
+
+
 
     // Implement the pixel-to-3D conversion and point cloud publishing logic here
     void publishPointCloud() {
-        // Lock the relevant mutexes as needed
-        std::lock_guard<std::mutex> lock_image(image_mutex_);
-        std::lock_guard<std::mutex> lock_point_cloud(point_cloud_mutex_);
-        std::lock_guard<std::mutex> lock_camera_info(camera_info_mutex_);
+    // Lock the relevant mutexes as needed
+    std::lock_guard<std::mutex> lock_image(image_mutex_);
+    std::lock_guard<std::mutex> lock_point_cloud(point_cloud_mutex_);
+    std::lock_guard<std::mutex> lock_camera_info(camera_info_mutex_);
 
-        if (!edge_msg_ || !depth_points_msg_ || !camera_info_msg_) {
-            ROS_WARN("Waiting for input data...");
-            return;
-        }
-
-        // Convert depth points message to a point cloud
-        sensor_msgs::PointCloud2::ConstPtr depth_points_msg = depth_points_msg_;
-        pcl::PCLPointCloud2 pcl_pc2;
-        pcl_conversions::toPCL(*depth_points_msg, pcl_pc2);
-
-        // Convert the point cloud to a pcl::PointCloud
-        pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud;
-        pcl::fromPCLPointCloud2(pcl_pc2, pcl_cloud);
-
-        // Create a sensor_msgs::PointCloud message
-        sensor_msgs::PointCloud point_cloud_msg;
-        point_cloud_msg.header = edge_msg_->header;
-
-        // Get camera parameters
-        const sensor_msgs::CameraInfo& cam_info = *camera_info_msg_;
-        double fx = cam_info.K[0];  // Focal length in x-direction (fx)
-        double fy = cam_info.K[4];  // Focal length in y-direction (fy)
-        double cx = cam_info.K[2];  // Principal point in x-direction (cx)
-        double cy = cam_info.K[5];  // Principal point in y-direction (cy)
-
-        // Iterate over edge pixels and convert to 3D
-        for (int v = 0; v < input_image_msg_->height; ++v) {
-            for (int u = 0; u < input_image_msg_->width; ++u) {
-                // Calculate the index for accessing depth data in the point cloud
-                pcl::PointXYZRGB& point = pcl_cloud(u, v);
-
-                // Calculate the 3D coordinates (x, y, z) using camera parameters
-                double depth = point.z;
-                double x = (u - cx) * depth / fx;
-                double y = (v - cy) * depth / fy;
-
-                // Add the 3D point to the sensor_msgs::PointCloud message
-                geometry_msgs::Point32 p;
-                p.x = x;
-                p.y = y;
-                p.z = depth;
-                point_cloud_msg.points.push_back(p);
-                edge_points.push_back(p);
-            }
-        }
-
-        // Publish the point cloud
-        point_cloud_pub_.publish(point_cloud_msg);
+    if (!edge_msg_ || !depth_points_msg_ || !camera_info_msg_) {
+        ROS_WARN("Waiting for input data...");
+        return;
     }
+
+    // Convert depth points message to a point cloud
+    sensor_msgs::PointCloud2::ConstPtr depth_points_msg = depth_points_msg_;
+    pcl::PCLPointCloud2 pcl_pc2;
+    pcl_conversions::toPCL(*depth_points_msg, pcl_pc2);
+
+    // Convert the point cloud to a pcl::PointCloud
+    pcl::PointCloud<pcl::PointXYZRGB> pcl_cloud;
+    pcl::fromPCLPointCloud2(pcl_pc2, pcl_cloud);
+
+    // Create a sensor_msgs::PointCloud message
+    sensor_msgs::PointCloud point_cloud_msg;
+    point_cloud_msg.header = edge_msg_->header;
+
+    // Get camera parameters
+    const sensor_msgs::CameraInfo& cam_info = *camera_info_msg_;
+    double fx = cam_info.K[0];  // Focal length in x-direction (fx)
+    double fy = cam_info.K[4];  // Focal length in y-direction (fy)
+    double cx = cam_info.K[2];  // Principal point in x-direction (cx)
+    double cy = cam_info.K[5];  // Principal point in y-direction (cy)
+
+    for (int v = 0; v < input_image_msg_->height; ++v) {
+        for (int u = 0; u < input_image_msg_->width; ++u) {
+            // Calculate the index for accessing depth data in the point cloud
+            pcl::PointXYZRGB& point = pcl_cloud(u, v);
+
+            // Calculate the 3D coordinates (x, y, z) using camera parameters
+            double depth = point.z;
+            double x = (u - cx) * depth / fx;
+            double y = (v - cy) * depth / fy;
+
+            // Add the 3D point to the sensor_msgs::PointCloud message
+            geometry_msgs::Point32 p;
+            p.x = x;
+            p.y = y;
+            p.z = depth;
+            point_cloud_msg.points.push_back(p);
+
+            // Add the point to the edge_points vector
+            edge_points.push_back(p); // Add the 3D point to edge_points
+        }
+    }
+
+    // Publish the point cloud
+    point_cloud_pub_.publish(point_cloud_msg);
+}
+
 
     void publishEdgeMarkers() {
-        if (edge_points.empty()) {
-            ROS_WARN("No edge points available...");
-            return;
-        }
-
-        // Create and publish a MarkerArray message
-        visualization_msgs::MarkerArray marker_array;
-        for (int i = 0; i < edge_points.size(); ++i) {
-            visualization_msgs::Marker marker;
-            marker.header = edge_msg_->header;
-            marker.ns = "edge_points";
-            marker.id = i;
-            marker.type = visualization_msgs::Marker::SPHERE;
-            marker.action = visualization_msgs::Marker::ADD;
-
-            // Convert geometry_msgs::Point32 to geometry_msgs::Point
-            geometry_msgs::Point point;
-            point.x = edge_points[i].x;
-            point.y = edge_points[i].y;
-            point.z = edge_points[i].z;
-            marker.pose.position = point;
-
-            marker.scale.x = 0.1; 
-            marker.scale.y = 0.1;
-            marker.scale.z = 0.1;
-            marker.color.r = 1.0;
-            marker.color.g = 0.0;
-            marker.color.b = 0.0;
-            marker.color.a = 1.0; // Fully opaque
-            marker_array.markers.push_back(marker);
-        }
-
-        edge_marker_pub_.publish(marker_array);
+    if (edge_points.empty()) {
+        ROS_WARN("No edge points available...");
+        return;
     }
+
+    //ROS_INFO("Publishing edge markers. Number of edge points: %zu", edge_points.size());
+
+    // Create and publish a MarkerArray message
+    visualization_msgs::MarkerArray marker_array;
+    for (int i = 0; i < edge_points.size(); ++i) {
+        visualization_msgs::Marker marker;
+        marker.header = edge_msg_->header;
+        marker.header.frame_id = "frame0";
+        marker.header.stamp = ros::Time();
+        marker.ns = "edge_points";
+        marker.id = i;
+        marker.type = visualization_msgs::Marker::SPHERE;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        // Convert geometry_msgs::Point32 to geometry_msgs::Point
+        geometry_msgs::Point point;
+        point.x = edge_points[i].x;
+        point.y = edge_points[i].y;
+        point.z = edge_points[i].z;
+        marker.pose.position = point;
+
+        marker.scale.x = 1.0; 
+        marker.scale.y = 1.0;
+        marker.scale.z = 1.0;
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+        marker.color.a = 1.0; // Fully opaque
+        marker_array.markers.push_back(marker);
+    }
+    //ROS_INFO("Publishing edge markers. Number of markers: %zu", marker_array.markers.size());
+    edge_marker_pub_.publish(marker_array);
+}
+
 
     void publishTF() {
         std::lock_guard<std::mutex> lock_robot_pose(robot_pose_mutex_);
@@ -221,18 +253,26 @@ public:
         // Create a TF transform message
         geometry_msgs::TransformStamped transformStamped;
         transformStamped.header.stamp = ros::Time::now();
-        transformStamped.header.frame_id = "root_link";
-        transformStamped.child_frame_id = "camera_color_optical_frame"; 
+        transformStamped.header.frame_id = "link6";
+        transformStamped.child_frame_id = "link7";
         
         // Set the translation and rotation using robot_pose_
         transformStamped.transform.translation.x = robot_pose_.pose.position.x;
         transformStamped.transform.translation.y = robot_pose_.pose.position.y;
         transformStamped.transform.translation.z = robot_pose_.pose.position.z;
         transformStamped.transform.rotation = robot_pose_.pose.orientation;
+        // ROS_INFO("Quaternion: x=%f, y=%f, z=%f, w=%f", 
+        //         robot_pose_.pose.orientation.x, 
+        //         robot_pose_.pose.orientation.y, 
+        //         robot_pose_.pose.orientation.z, 
+        //         robot_pose_.pose.orientation.w);
+
 
         // Publish the TF transform
         tf_broadcaster_.sendTransform(transformStamped);
     }
+
+  
 
 
 
@@ -262,7 +302,8 @@ private:
 
     geometry_msgs::PoseStamped robot_pose_;
     tf2_ros::TransformBroadcaster tf_broadcaster_;
-
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    tf2_ros::Buffer tf_buffer_;
     // Mutexes for protecting shared data
     std::mutex image_mutex_;
     std::mutex point_cloud_mutex_;
@@ -276,7 +317,7 @@ int main(int argc, char** argv) {
 
     EdgeDetectionNode node(nh);
 
-    ros::Rate loop_rate(30);  // To match frame rate of camera in Rviz
+    ros::Rate loop_rate(30);  // Set to same as camera in RViz
 
     while (ros::ok()) {
         node.publishPointCloud();
