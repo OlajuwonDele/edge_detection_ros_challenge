@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /Status1
         - /RobotModel1/Links1
         - /RobotModel1/Links1/world1
         - /MarkerArray1
@@ -207,11 +208,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        dentist_camera_housing:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         ee_link:
           Alpha: 1
           Show Axes: false
